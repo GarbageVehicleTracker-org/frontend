@@ -21,6 +21,7 @@ const MapComponent = ({ areaData, driverData, vehicleId }) => {
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyC8rsCM1PxiuuyL7FdtvXimGMSR-0dtkB0",
   });
+  console.log(areaData)
 
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
@@ -34,12 +35,15 @@ const MapComponent = ({ areaData, driverData, vehicleId }) => {
   console.log(coordinates);
   console.log(polylinePath);
 
+  // console.log("areaId is :",areaData._id)
+
   useEffect(() => {
     const fetchCoordinates = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `https://garbage-tracking-backend.onrender.com/dustbins/get-middleCoordinates/${areaData.areaId}`,
+          // eslint-disable-next-line react/prop-types
+          `https://garbage-tracking-backend.onrender.com/dustbins/get-middleCoordinates/${areaData._id}`,
           {
             method: "GET",
             headers: {

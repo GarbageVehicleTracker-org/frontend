@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
+import axios from "axios";
 import MapComponent from "../components/MapComponent";
 import withAuth from "../utils/withAuth";
 import Skeleton from "../components/Skeleton";
 import TrackingProgressBar from "../components/TrackingProgressBar";
 import "../styles/TrackingMap.css"; // Ensure you have the CSS file imported
+import { faAreaChart } from "@fortawesome/free-solid-svg-icons";
 
 const socket = io("https://production-backend-3olq.onrender.com"); // Replace with your backend URL
 
@@ -23,6 +25,10 @@ const TrackingMap = () => {
   const [driverId, setDriverId] = useState(null);
   const [vehicleId, setVehicleId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isFirstMatch, setIsFirstMatch] = useState(false);
+  const [isLastMatch, setIsLastMatch] = useState(false);
+  const [firstMatchCoordinates, setFirstMatchCoordinates] = useState(false);
+  const [lastMatchCoordinates, setLastMatchCoordinates] = useState(false);
 
   useEffect(() => {
     const areaId = getQueryParameter("areaId");
@@ -31,6 +37,9 @@ const TrackingMap = () => {
     setDriverId(driverId);
     const vehicleId = getQueryParameter("vehicleId");
     setVehicleId(vehicleId);
+    // console.log("area Id",areaId)
+
+    
 
     const fetchAreaData = async () => {
       try {
@@ -101,11 +110,40 @@ const TrackingMap = () => {
     }
 
     // Set up WebSocket listeners
-    socket.on("coordinatesUpdated", (data) => {
+    socket.on("coordinatesUpdated", async (data) => {
       const { vehicleId, latitude, longitude } = data;
       console.log(`Received coordinates for vehicle ${vehicleId}: ${latitude}, ${longitude}`);
-      // Update your state or map with the new coordinates here
-      // For example, you can update the areaData or another state based on the vehicleId
+      
+      const matchLat = parseFloat(latitude).toFixed(4) === 23.2057;
+      const matchLng = parseFloat(longitude).toFixed(4) === 87.0286;
+
+      if (matchLat && matchLng) {
+        if (!isFirstMatch) {
+          try {
+            await axios.post("https://garbage-tracking-backend.onrender.com/updates/notifications", {
+              driverId: vehicleId,
+              title: "Garbage Vehicle Out of Collection Point",
+              message: "The garbage vehicle has left the collection point to start collecting garbage.",
+            });
+            console.log("Notification created for departure");
+          } catch (error) {
+            console.error("Error creating departure notification:", error);
+          }
+          setFirstMatchCoordinates(true); // Update state for first match
+        } else {
+          try {
+            await axios.post("https://garbage-tracking-backend.onrender.com/updates/notifications", {
+              driverId: vehicleId,
+              title: "Garbage Vehicle Successfully Reached Endpoint",
+              message: "The garbage vehicle has successfully reached the endpoint.",
+            });
+            console.log("Notification created for arrival");
+          } catch (error) {
+            console.error("Error creating arrival notification:", error);
+          }
+          setLastMatchCoordinates(true); // Update state for last match
+        }
+      }
     });
 
     socket.on("dustbinVisited", (data) => {
@@ -140,7 +178,7 @@ const TrackingMap = () => {
 
   // Generate points with isVisited status
   const generatePoints = () => {
-    const points = [{ label: "Start", isVisited: false, visitedTimestamp: null }];
+    const points = [{ label: "Start", isVisited: isFirstMatch, visitedTimestamp: null }];
     areaData.dustbins.forEach((dustbin, index) => {
       points.push({
         label: `Point ${index + 1}`,
@@ -148,7 +186,7 @@ const TrackingMap = () => {
         visitedTimestamp: dustbin.visitedTimestamp,
       });
     });
-    points.push({ label: "End", isVisited: false, visitedTimestamp: null });
+    points.push({ label: "End", isVisited: isLastMatch, visitedTimestamp: null });
     return points;
   };
 
@@ -175,14 +213,17 @@ const TrackingMap = () => {
         <hr />
         <div>
           <h3>Route Progress</h3>
-          <TrackingProgressBar areaData={areaData} points={points} circleSize={40} />
-
+          <TrackingProgressBar 
+            areaData={areaData} 
+            points={points} 
+            circleSize={40} 
+            firstMatchCoordinates={firstMatchCoordinates}
+            lastMatchCoordinates={lastMatchCoordinates}
+          />
         </div>
       </div>
     </div>
   );
-};
+}
 
-const TrackingMapWithAuth = withAuth(TrackingMap);
-
-export default TrackingMapWithAuth;
+export default TrackingMap;

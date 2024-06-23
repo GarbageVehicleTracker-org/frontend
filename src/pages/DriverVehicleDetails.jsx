@@ -77,6 +77,7 @@ const DriverVehicleDetails = () => {
     const encodedVehicleId = btoa(vehicleId);
     const url = `/tracking?areaId=${encodedAreaId}&driverId=${encodedDriverId}&vehicleId=${encodedVehicleId}`;
     console.log(driverId)
+    console.log(vehicleId)
 
     // Using navigate to programmatically navigate
     navigate(url);

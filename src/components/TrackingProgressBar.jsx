@@ -68,7 +68,7 @@ const formatTime = (timestamp) => {
   });
 };
 
-const TrackingProgressBar = ({ areaData, points, circleSize = 40 }) => {
+const TrackingProgressBar = ({ areaData, points, circleSize = 40, firstMatchCoordinates, lastMatchCoordinates }) => {
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
@@ -88,11 +88,11 @@ const TrackingProgressBar = ({ areaData, points, circleSize = 40 }) => {
         <React.Fragment key={index}>
           <Circle
             size={circleSize}
-            isVisited={point.isVisited}
+            isVisited={point.isVisited || (index === 0 && firstMatchCoordinates) || (index === points.length - 1 && lastMatchCoordinates)}
             onClick={() => openModal(point)}
           >
             {index + 1}
-            {point.isVisited && <TimeLabel size={circleSize}>{formatTime(point.visitedTimestamp)}</TimeLabel>}
+            {(point.isVisited || (index === 0 && firstMatchCoordinates) || (index === points.length - 1 && lastMatchCoordinates)) && <TimeLabel size={circleSize}>{formatTime(point.visitedTimestamp)}</TimeLabel>}
           </Circle>
           {index < points.length - 1 && (
             <Line isVisited={points[index].isVisited && points[index + 1].isVisited} />
